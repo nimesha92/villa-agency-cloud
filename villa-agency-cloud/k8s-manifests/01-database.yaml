@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: villa-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: villa-postgres
+  template:
+    metadata:
+      labels:
+        app: villa-postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        env:
+        - name: POSTGRES_USER
+          value: villaadmin
+        - name: POSTGRES_PASSWORD
+          value: VillaPass123!
+        - name: POSTGRES_DB
+          value: villadb
+        ports:
+        - containerPort: 5432
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: villa-postgres-service
+spec:
+  selector:
+    app: villa-postgres
+  ports:
+  - port: 5432
+    targetPort: 5432

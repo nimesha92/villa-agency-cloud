@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: property-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: property-service
+  template:
+    metadata:
+      labels:
+        app: property-service
+    spec:
+      containers:
+      - name: property-service
+        image: nalin745/villa-property-service:v1
+        env:
+        - name: DATABASE_URL
+          value: postgresql://villaadmin:VillaPass123!@villa-postgres-service:5432/villadb
+        ports:
+        - containerPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: property-service
+spec:
+  selector:
+    app: property-service
+  ports:
+  - port: 8000
+    targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: agent-service
+  template:
+    metadata:
+      labels:
+        app: agent-service
+    spec:
+      containers:
+      - name: agent-service
+        image: nalin745/villa-agent-service:v1
+        env:
+        - name: DATABASE_URL
+          value: postgresql://villaadmin:VillaPass123!@villa-postgres-service:5432/villadb
+        ports:
+        - containerPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-service
+spec:
+  selector:
+    app: agent-service
+  ports:
+  - port: 8000
+    targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enquiry-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: enquiry-service
+  template:
+    metadata:
+      labels:
+        app: enquiry-service
+    spec:
+      containers:
+      - name: enquiry-service
+        image: nalin745/villa-enquiry-service:v1
+        env:
+        - name: DATABASE_URL
+          value: postgresql://villaadmin:VillaPass123!@villa-postgres-service:5432/villadb
+        - name: ENQUIRY_THRESHOLD
+          value: "10"
+        ports:
+        - containerPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: enquiry-service
+spec:
+  selector:
+    app: enquiry-service
+  ports:
+  - port: 8000
+    targetPort: 8000
