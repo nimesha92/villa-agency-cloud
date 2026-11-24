@@ -1,0 +1,65 @@
+name: Villa Agency CI/CD to AWS EKS
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: villa-agency-eks
+
+jobs:
+  build-and-push:
+    name: CI - Build & Push Docker Images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push villa-frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./villa-agency-cloud/frontend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/villa-frontend:v3
+
+      - name: Build and push enquiry-service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./villa-agency-cloud/enquiry-service
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/villa-enquiry-service:v1
+
+  deploy-to-eks:
+    name: CD - Deploy to AWS EKS
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+
+      - name: Deploy manifests & restart workloads
+        run: |
+          kubectl apply -f villa-agency-cloud/k8s-manifests/
+          kubectl rollout restart deployment/villa-frontend-blue
+          kubectl rollout restart deployment/enquiry-service
+          kubectl rollout status deployment/villa-frontend-blue
+          kubectl rollout status deployment/enquiry-service
